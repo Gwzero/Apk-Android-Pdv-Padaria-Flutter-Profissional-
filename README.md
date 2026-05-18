@@ -353,35 +353,3 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
-
-/*
-COMO GERAR APK:
-
-1. Instale Flutter
-2. Crie projeto:
-   flutter create pdv_padaria
-
-3. Substitua o arquivo lib/main.dart por este código.
-
-4. Rode no Android:
-   flutter run
-
-5. Gerar APK:
-   flutter build apk --release
-
-APK FINAL:
-build/app/outputs/flutter-apk/app-release.apk
-
-PRÓXIMAS EVOLUÇÕES:
-- Firebase
-- Login
-- Multiusuário
-- Impressora térmica
-- NFC-e
-- Banco SQLite
-- Backup online
-- Dashboard avançado
-- Controle financeiro completo
-- Integração iFood
-- QR Code PIX
-*/
