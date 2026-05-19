@@ -1,6 +1,6 @@
 workflows:
   android-workflow:
-    name: Android Workflow
+    name: Android Build & Release
     instance_type: linux_x2
     max_build_duration: 120
     environment:
@@ -8,10 +8,8 @@ workflows:
         - keystore_reference
       vars:
         PACKAGE_NAME: "com.padaria.pdv"
-        BUNDLE_ID: "com.padaria.pdv"
+        GRADLE_OPTS: "-Xmx512m"
       flutter: stable
-      xcode: latest
-      cocoapods: default
     triggering:
       events:
         - push
@@ -21,11 +19,13 @@ workflows:
           - main
           - develop
     scripts:
+      - name: Setup Flutter
+        script: flutter config --no-analytics
       - name: Get Flutter packages
         script: flutter pub get
       - name: Run Flutter tests
         script: flutter test
-      - name: Build APK
+      - name: Build APK Release
         script: |
           flutter build apk \
             --release \
@@ -38,8 +38,8 @@ workflows:
             --build-name=1.0.0 \
             --build-number=$BUILD_NUMBER
     artifacts:
-      - build/app/outputs/flutter-apk/*.apk
-      - build/app/outputs/bundle/release/*.aab
+      - build/app/outputs/flutter-apk/app-release.apk
+      - build/app/outputs/bundle/release/app-release.aab
     publishing:
       email:
         recipients:
@@ -49,7 +49,7 @@ workflows:
           failure: true
 
   ios-workflow:
-    name: iOS Workflow
+    name: iOS Build & Release
     instance_type: mac_mini_m1
     max_build_duration: 120
     environment:
@@ -70,28 +70,30 @@ workflows:
           - main
           - develop
     scripts:
+      - name: Setup Flutter
+        script: flutter config --no-analytics
       - name: Get Flutter packages
         script: flutter pub get
       - name: Run Flutter tests
         script: flutter test
-      - name: Build iOS
+      - name: Build iOS Release
         script: |
           flutter build ios \
             --release \
             --build-name=1.0.0 \
-            --build-number=$BUILD_NUMBER \
-            --no-codesign
-      - name: Package for AppStore
+            --build-number=$BUILD_NUMBER
+      - name: Create iOS Build Archive
         script: |
           cd ios
           xcodebuild -workspace Runner.xcworkspace \
             -scheme Runner \
-            -config Release \
-            -derivedDataPath build/ios_build \
-            -archivePath build/ios_build/Runner.xcarchive \
+            -configuration Release \
+            -derivedDataPath build \
+            -archivePath build/Runner.xcarchive \
             archive
     artifacts:
-      - build/ios_build/Runner.xcarchive
+      - ios/build/Runner.xcarchive/**
+      - build/ios/iphoneos/Runner.app
     publishing:
       email:
         recipients:
@@ -101,7 +103,7 @@ workflows:
           failure: true
 
   web-workflow:
-    name: Web Workflow
+    name: Web Build & Deploy
     instance_type: linux_x2
     max_build_duration: 60
     environment:
@@ -115,12 +117,14 @@ workflows:
           - main
           - develop
     scripts:
+      - name: Setup Flutter
+        script: flutter config --no-analytics
       - name: Get Flutter packages
         script: flutter pub get
       - name: Run Flutter tests
         script: flutter test
-      - name: Build Web
-        script: flutter build web --release
+      - name: Build Web Release
+        script: flutter build web --release --dart-define=FLUTTER_WEB_USE_SKP=true
     artifacts:
       - build/web/**
     publishing:
@@ -132,7 +136,7 @@ workflows:
           failure: true
 
   analyze-workflow:
-    name: Code Analysis
+    name: Code Analysis & Testing
     instance_type: linux_x2
     max_build_duration: 30
     environment:
@@ -141,12 +145,27 @@ workflows:
       events:
         - push
         - pull_request
+      branch:
+        include_patterns:
+          - main
+          - develop
     scripts:
+      - name: Setup Flutter
+        script: flutter config --no-analytics
       - name: Get Flutter packages
         script: flutter pub get
       - name: Analyze code
         script: flutter analyze
-      - name: Check formatting
+      - name: Check code formatting
         script: dart format --set-exit-if-changed .
-      - name: Run tests
-        script: flutter test
+      - name: Run unit tests
+        script: flutter test --coverage
+    artifacts:
+      - coverage/lcov.info
+    publishing:
+      email:
+        recipients:
+          - user@example.com
+        notify:
+          success: true
+          failure: true
